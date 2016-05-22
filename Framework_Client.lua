@@ -27,7 +27,7 @@ end
 local function gs(s) return game:GetService(s.."Service") end -- This is the definition of lazy, I love me
 local rs = gs'Run' --Run service
 local uis = gs'UserInput' --User input service
-local cp = gs'ContentProvider' --CP service
+--local cp = gs'ContentProvider' --CP service
 
 local wfc = game.WaitForChild --WaitForChild
 local ffc = game.FindFirstChild --FindFirstChild
@@ -84,9 +84,10 @@ local tick			= tick
 local new 			= Instance.new
 local ray			= Ray.new
 local raycast		= function(...) return game.Workspace:FindPartOnRayWithIgnoreList(...) end
-local ptos = nc.pointToObjectSpace
+local ptos 			= nc.pointToObjectSpace
+local tos			= nc.toObjectSpace
 
-local drawray, draw, tramsformModel
+local drawray, draw, tramsformModel, weldModel
 do -- Debug funcs
 	function drawray(ray) --Render a ray
 		local part = Instance.new("Part", workspace);
@@ -131,6 +132,33 @@ do -- Debug funcs
 			transformModel(child, cframe, center)
 		end
 	end
+	
+	function weldModel(model,basepart)
+		local weldcframes={}
+		local children=model:GetChildren()
+		basepart=basepart
+		local welds={}
+		welds[0]=basepart
+		local basecframe=basepart and basepart.CFrame
+		for i=1,#children do
+			if children[i]:IsA("BasePart") then
+				weldcframes[i]=tos(basecframe,children[i].CFrame)
+			end
+		end
+		for i=1,#children do
+			if children[i]:IsA("BasePart") then
+				local newweld=new("Motor6D",basepart)
+				newweld.Part0=basepart
+				newweld.Part1=children[i]
+				newweld.C0=weldcframes[i]
+				welds[i]=newweld
+				children[i].Anchored=false
+			end
+		end
+		basepart.Anchored=false
+		return welds
+	end
+	
 end
 
 
@@ -239,8 +267,8 @@ do
 		--p.Rotation=atan2(p1.y-p0.y,p1.x-p0.x)/(pi/180)
 		--p.Size=ud2(0,p0.x-p1.x,0,p0.y-p1.y/4)
 		
- 		p.Size=ud2(0,4,0,4)
-		p.Position=((v or not p0V or not p1V) and ud(-1,0,0,0) ) or ud(0,p1.x,0,p1.y) --If obstructed then move off screen, else move to screen space
+ 		p.Size=ud2(0,8,0,8)
+		p.Position=((v or not p0V or not p1V) and ud2(-1,0,0,0) ) or ud2(0,p1.x,0,p1.y) --If obstructed then move off screen, else move to screen space
 		
 		spawn(function()
 			rs.RenderStepped:wait() --Recycle v
@@ -254,8 +282,8 @@ do
 		if i.UserInputType==Enum.UserInputType.Keyboard then
 			spawn(function()
 				local t=tick()
-				local p0=plr.Character.Head.Position
-				local v0=plr.Character.Head.CFrame.lookVector*1024
+				local p0=wfc(game.Workspace,"Test").Barrel.Position
+				local v0=game.Workspace.Test.Barrel.CFrame.lookVector*1024
 				while tick()-t<5 do
 					local p1,v0=mathF.BulletInterp(p0,v0,v3(0,-9.83,0))
 					self.drawParticle(p0,p1)
@@ -282,7 +310,19 @@ do -- Player Scope
 		local stored= prop.stored or 1024
 		local mag = prop.mag or 32 -- I didn't add chamber stuff as I don't 100% know how that works
 		
-		local model=model or prop.model and prop.model:clone() or Instance.new("Part")
+		local model=model or error("NO GUN MODEL!")
+
+		model.Handle.CFrame=cf(model.Handle.Position) -- Fail v
+		weldModel(model,model.Handle) --Divise a way to fix any rotational errors
+		model.Parent=game.Workspace
+		
+		local gOffset=prop.gOffset
+		
+		local shots={}
+		
+		self.step=function()
+			model.Handle.CFrame=cam.CoordinateFrame*gOffset
+		end
 		
 		return self
 	end
@@ -296,14 +336,21 @@ do -- Game Scope
 	local currentGun --Array for the currently equipped gun
 	
 	self.LoadGun = function(p, dat, model) --Load a new gun
-		currentGun = player.loadGun({})
+		currentGun = player.loadGun(dat,model)
 		currentGunp = p
+	end
+	
+	self.step=function()
+		if currentGun and currentGun.step then
+			currentGun.step()
+		end
 	end
 end;
 
 do -- Run Scope
 	local framework = { -- Run everything, note that this should be in a prioritized order
-		time;		
+		time;
+		Game;
 	}
 	
 	rs.RenderStepped:connect(function() -- Could be optimized?
@@ -316,4 +363,4 @@ end;
 
 --Run code
 
-Game.LoadGun(1)
+Game.LoadGun(1,require(storage.Modules.Test),storage.Models.Test:Clone())
