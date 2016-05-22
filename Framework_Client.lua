@@ -9,37 +9,39 @@
 
 																																																																																														]]
 
-local settings = { 
+local settings = { --YellowTide added this, I am unsure what it is for
 	JumpEnabled = true;
 }
 
-local debug = {
-	Print = true;
+local debug = { --Debug settings
+	Print = true; --Allow output printing
 }
 
 local logF = print
-local function print(...)
+local function print(...) --Custom log function
 	if debug.Print then
 		logF(...)
 	end 
 end
 
 local function gs(s) return game:GetService(s.."Service") end -- This is the definition of lazy, I love me
-local rs = gs'Run'
-local uis = gs'UserInput'
-local cp = game:GetService'ContentProvider'
+local rs = gs'Run' --Run service
+local uis = gs'UserInput' --User input service
+local cp = gs'ContentProvider' --CP service
 
-local wfc = game.WaitForChild
-local ffc = game.FindFirstChild
+local wfc = game.WaitForChild --WaitForChild
+local ffc = game.FindFirstChild --FindFirstChild
 
-local plr = game.Players.LocalPlayer
-local mouse = plr:GetMouse()
-local cam = game.Workspace.CurrentCamera
-local storage = game.ReplicatedStorage
+local plr = game.Players.LocalPlayer --The user
+local mouse = plr:GetMouse() --The player's mouse [Depricated? Use UIS.]
+local cam = game.Workspace.CurrentCamera --Client's camera
+local storage = game.ReplicatedStorage --Rep storage
 local char, humanoid, torso, hrp, head, lhip, rhip --Likely no need for this as we will be creating a custom humanoid
 
 
 -- Shortcuts
+local clone 		= game.clone
+
 local v3 			= Vector3.new
 local nv			= v3()
 local v2			= Vector2.new
@@ -75,16 +77,18 @@ local atan2			= math.atan2
 local pi			= math.pi
 local tau			= pi*2
 local e				= 2.71828183
+local deg			= pi/180
 local randomseed	= math.randomseed
 local setmetatable	= setmetatable
 local tick			= tick
 local new 			= Instance.new
 local ray			= Ray.new
 local raycast		= function(...) return game.Workspace:FindPartOnRayWithIgnoreList(...) end
+local ptos = nc.pointToObjectSpace
 
 local drawray, draw, tramsformModel
-do -- extra
-	function drawray(ray)
+do -- Debug funcs
+	function drawray(ray) --Render a ray
 		local part = Instance.new("Part", workspace);
 		part.FormFactor = Enum.FormFactor.Custom;
 		part.Material = Enum.Material.Neon;
@@ -102,7 +106,7 @@ do -- extra
 		end)
 	end
 	
-	function draw(p, c)
+	function draw(p, c) --Draw a part with a specific color at a specific location
 		local part =  Instance.new("Part", game.Workspace)
 		part.Size = Vector3.new(.2,.2,.2)
 		part.BrickColor = BrickColor.new(c)
@@ -117,6 +121,7 @@ do -- extra
 	
 	
 	-- @EgoMoose
+	--Move a model
 	function transformModel(model, cframe, center) -- Same errors as SetPrimaryPartCFrame;
 		local center = center or (model.PrimaryPart and model.PrimaryPart.CFrame or model:GetModelCFrame())
 		for _, child in ipairs(model:GetChildren()) do
@@ -132,30 +137,30 @@ end
 randomseed(tick()) for i = 1, 4 do random() end -- Makes math.random even more 'random'
 
 -- Modules
-local time 		= {}
+local time 		= {} -- We are the time gods (This is for time related functions)
 local mathF		= {} -- A math library for math functions
-local particle	= {}
-local player 	= {}
-local Game 		= {}
-local run 		= {}
+local particle	= {} -- Particle effect functions
+local player 	= {} -- Player logic
+local Game 		= {} -- Game logic
+local run 		= {} -- Runs all code
 
 do -- Time Scope
-	local self = time
-	local lastFrame = tick()
-	local n = 0
-	local tick = tick
+	local self = time --When I set self=[module name] I make the module quicker to reference and give it a more universal name
+	local lastFrame = tick() --The time in which the previous frame existed at
+	local n = 0	--Number of DTs or frames that have passed
+	local tick = tick --Quicker reference to tick
 	
 	self.deltaTime = function() -- Generic DT
-		local rdt = tick() - lastFrame
+		local rdt = tick() - lastFrame --Easy, current frame time - last frame time = current frame delay or delta time
 		return rdt < .009 and rdt or .001 --Fix the bug that occurs when you tab out
 	end
 	
 	self.smoothDeltaTime = function() -- Theoretically should produce more smooth results
-		return time.deltaTime() + (n)/(n + 1)
+		return time.deltaTime() + (n)/(n + 1) --SDT = dt + n/n+1, this results in a less accurate but more usable number
 	end
 	
 	self.step = function () -- This is called every time the framework steps or updates
-		lastFrame = tick()
+		lastFrame = tick() --Reset the previous frame
 		n = n + 1 -- This should maybe be added on the DT and SDT functions only?
 	end
 	
@@ -163,9 +168,8 @@ end;
 
 do -- Mathf Scope
 	local self = mathF
-	local ptos = nc.pointToObjectSpace
 	
-	self.IK = function(r0, r1, c, p) --Could be more optimized and accurate, generic 2-chain only
+	self.IK = function(r0, r1, c, p) --Could be more optimized and accurate, generic 2-chain IK only
 		local t = ptos(c, p)
 		local tx, ty, tz = t.x, t.y, t.z
 		
@@ -180,13 +184,13 @@ do -- Mathf Scope
 		return j0, j0 * cf(0, 0, -r0) * ca(-2 * a, 0, 0)
 	end
 
-	self.BulletInterp= function(p0,v0,a)
+	self.BulletInterp= function(p0,v0,a) --Simple bullet physics, this interpolates the position and velocity by using the previous position and velocity
 		local p = p0 + ((a) * time.deltaTime()) + (v0 * time.deltaTime())
 		local v = v0 + (a * time.deltaTime())
 		return p,v
 	end
 	
-	--Test stuff
+	--Test IK
 	spawn(function() 
 		local i = 1 
 		while wait() do
@@ -204,18 +208,18 @@ do -- Mathf Scope
 
 end;
 
---Partilce effect scope
+--Particle effect scope
 do
 	local self=particle
 	
-	local frames={}
-	local rframes={}
+	local frames={} --Free frames
+	local rframes={} --Used frames
 	
 	self.drawParticle= function(p0,p1)
-		local p0,p0V=cam:WorldToScreenPoint(p0)
+		local p0,p0V=cam:WorldToScreenPoint(p0) --Get the position on the screen for p0 and the current position
 		local p1,p1V=cam:WorldToScreenPoint(p1)
 		local p1r=ray(cam.CoordinateFrame.p,(p1-cam.CoordinateFrame.p).Unit*(p1-cam.CoordinateFrame.p).Magnitude*10)
-		local v=workspace:FindPartOnRay(p1r,plr.Character) --Make sure it is not obstructed
+		local v=workspace:FindPartOnRay(p1r,plr.Character) -- <- Make sure it is not obstructed ^
 		
 		--Recycle frames to use less cpu
 		if #frames <1 then
@@ -231,19 +235,23 @@ do
 		
 		p.Visible=true
 		
+		-- v Need work
 		--p.Rotation=atan2(p1.y-p0.y,p1.x-p0.x)/(pi/180)
 		--p.Size=ud2(0,p0.x-p1.x,0,p0.y-p1.y/4)
+		
  		p.Size=ud2(0,4,0,4)
-		p.Position=not p0V and not p0V and ud2(-100,0,0,0) or not p1V and ud2(-100,0,0,0) or v and ud2(-100,0,0) or ud2(0,p1.x,0,p1.y)
+		p.Position=((v or not p0V or not p1V) and ud(-1,0,0,0) ) or ud(0,p1.x,0,p1.y) --If obstructed then move off screen, else move to screen space
+		
 		spawn(function()
-			rs.RenderStepped:wait()
+			rs.RenderStepped:wait() --Recycle v
 			frames[#frames+1]=p
 			p.Visible=false
 		end)
 	end
 	
-		gs("UserInput").InputBegan:connect(function(i)
-			if i.UserInputType==Enum.UserInputType.Keyboard then
+	--Test particle render and bullet interpolator
+	uis.InputBegan:connect(function(i)
+		if i.UserInputType==Enum.UserInputType.Keyboard then
 			spawn(function()
 				local t=tick()
 				local p0=plr.Character.Head.Position
@@ -261,15 +269,14 @@ do
 end;
 
 do -- Player Scope
-	local clone = game.clone
 	local self = player
 	
-	local user = game.Players.LocalPlayer
-	local chr = wfc(game.Workspace,user.Name)
+	local user = plr --Unneeded
+	local chr = wfc(game.Workspace,user.Name) --Could be moved to the begininng of the script
 	
 	-- Gun subscope generator thingy
 	self.loadGun = function(prop, model)
-		local self = {}
+		local self = {} --Subscope data
 		
 		local rate = prop.rate or 400
 		local stored= prop.stored or 1024
@@ -285,10 +292,10 @@ end;
 do -- Game Scope
 	local self = Game
 	
-	local currentGunp = 0 -- 0=None,1=prim,2=sec,3=knife
-	local currentGun
+	local currentGunp = 0 -- 0=None,1=prim,2=sec,3=knife | The gun position in the inventory
+	local currentGun --Array for the currently equipped gun
 	
-	self.LoadGun = function(p, dat, model)
+	self.LoadGun = function(p, dat, model) --Load a new gun
 		currentGun = player.loadGun({})
 		currentGunp = p
 	end
@@ -306,5 +313,7 @@ do -- Run Scope
 	end)
 	
 end;
+
+--Run code
 
 Game.LoadGun(1)
