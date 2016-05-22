@@ -1,11 +1,11 @@
-																																																																																														--[[
-	  ____                                      _ _           _____ ____  ____  
-	 / ___|___  _ __ ___  _ __ ___  _   _ _ __ (_) |_ _   _  |  ___|  _ \/ ___| 
-	| |   / _ \| '_ ` _ \| '_ ` _ \| | | | '_ \| | __| | | | | |_  | |_) \___ \ 
-	| |__| (_) | | | | | | | | | | | |_| | | | | | |_| |_| | |  _| |  __/ ___) |
-	 \____\___/|_| |_| |_|_| |_| |_|\__,_|_| |_|_|\__|\__, | |_|   |_|   |____/ 
-	                                                  |___/                     
-		
+																																																																																																		--[[
+					  ____                                      _ _           _____ ____  ____  
+				|	 / ___|___  _ __ ___  _ __ ___  _   _ _ __ (_) |_ _   _  |  ___|  _ \/ ___| 	|
+				|	| |   / _ \| '_ ` _ \| '_ ` _ \| | | | '_ \| | __| | | | | |_  | |_) \___ \ 	|
+				|	| |__| (_) | | | | | | | | | | | |_| | | | | | |_| |_| | |  _| |  __/ ___) |	|
+				|	 \____\___/|_| |_| |_|_| |_| |_|\__,_|_| |_|_|\__|\__, | |_|   |_|   |____/ 	|
+					                                                  |___/                     
+						
 
 																																																																																														]]
 
@@ -134,6 +134,7 @@ randomseed(tick()) for i = 1, 4 do random() end -- Makes math.random even more '
 -- Modules
 local time 		= {}
 local mathF		= {} -- A math library for math functions
+local particle	= {}
 local player 	= {}
 local Game 		= {}
 local run 		= {}
@@ -184,24 +185,44 @@ do -- Mathf Scope
 		local v = v0 + (a * time.deltaTime())
 		return p,v
 	end
+
+	self.drawParticle= function(p0,p1)
+		local p0,p0V=cam:WorldToScreenPoint(p0)
+		local p1,p1V=cam:WorldToScreenPoint(p1)
+		local p1r=ray(cam.CoordinateFrame.p,(p1-cam.CoordinateFrame.p).Unit*(p1-cam.CoordinateFrame.p).Magnitude*10)
+		local v=workspace:FindPartOnRay(p1r,plr.Character) --Make sure it is not obstructed
+		
+		local p=Instance.new("Frame",plr.PlayerGui.particle)
+		p.BorderSizePixel=0
+		p.BackgroundColor3=Color3.new(.5,.5,.3)
+		--p.Rotation=atan2(p1.y-p0.y,p1.x-p0.x)/(pi/180)
+		--p.Size=ud2(0,p0.x-p1.x,0,p0.y-p1.y/4)
+ 		p.Size=ud2(0,4,0,4)
+		p.Position=not p0V and not p0V and ud2(-100,0,0,0) or not p1V and ud2(-100,0,0,0) or v and ud2(-100,0,0) or ud2(0,p1.x,0,p1.y)
+		spawn(function()
+			rs.RenderStepped:wait() p:Destroy()
+		end)
+	end
 	
 	--Test stuff
 	spawn(function() --Messy quick shit
 		for i=1,1000 do
+			wait(1)
 			spawn(function()
 				local t=tick()
-				local p0=v3(0,5,0)
+				local p0=v3(0,25,0)
 				local p1=p0
-				local v0=game.Workspace.d.CFrame.lookVector*-20000
+				local v0=((game.Workspace.d.CFrame.lookVector)*-4000)
 				rs.RenderStepped:connect(function()
-					if tick()-t > 5 then return end
-					local newp,newv = self.BulletInterp(p0,v0,v3(0,-1000,0))
+					if tick()-t > 20 then return end
+					local newp,newv = self.BulletInterp(p0,v0,v3(0,-75,0))
 					--print(newp,"	",newv)
 					p0=newp
 					v0=newv
 					
 					local r=Ray.new(p0,(p1-p0).Unit*(p0-p1).Magnitude)
-					drawray(r)
+					--drawray(r)
+					self.drawParticle(p0,p1)
 					p1=p0
 				end)
 			end)
@@ -224,6 +245,11 @@ do -- Mathf Scope
 		end
 	end)
 
+end;
+
+--Partilce effect scope
+do
+	
 end;
 
 do -- Player Scope
