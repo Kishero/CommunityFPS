@@ -11,3 +11,5 @@ CommunityFPS is a FPS framework built by the community! That means it is complet
 - Kishero
 
 - YellowTide
+
+- Zars Branchkin
