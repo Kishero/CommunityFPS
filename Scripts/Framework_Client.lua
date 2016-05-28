@@ -348,17 +348,24 @@ do -- Game Scope
 end;
 
 do -- Run Scope
+  local heartbeat = rs.Heartbeat
 	local framework = { -- Run everything, note that this should be in a prioritized order
 		time;
 		Game;
 	}
-	
-	rs.RenderStepped:connect(function() -- Could be optimized?
-		for _,v in pairs(framework) do
-			v.step()
+
+  rs:BindToRenderStep("RenderLoop", Enum.RenderPriority.Camera.Value, function()
+      -- Code in this function should be left only for animations and visual effects, so that they are in sync with rendering
+      -- Consider creating serperate method dedicated for rendering loop
+  end)
+
+  while true do
+		for i=1,#framework do
+			framework[i].step() -- Normal updates should be left to the heartbeat loop
 		end
-	end)
-	
+
+    heartbeat:wait()
+  end
 end;
 
 --Run code
