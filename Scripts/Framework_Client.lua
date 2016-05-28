@@ -349,14 +349,17 @@ end;
 
 do -- Run Scope
   local heartbeat = rs.Heartbeat
-	local framework = { -- Run everything, note that this should be in a prioritized order
-		time;
-		Game;
+	local rframework = { -- Run everything, note that this should be in a prioritized order
+		time; -- Delta time stuff goes here
+		Game; --Master of everting related to the physical player
 	}
-
+        local framework={}
   rs:BindToRenderStep("RenderLoop", Enum.RenderPriority.Camera.Value, function()
       -- Code in this function should be left only for animations and visual effects, so that they are in sync with rendering
       -- Consider creating serperate method dedicated for rendering loop
+      for i=1,#rframework do
+      	rframework[i].step()
+      end
   end)
 
   while true do
