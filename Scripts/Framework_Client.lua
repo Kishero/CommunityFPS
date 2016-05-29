@@ -312,6 +312,7 @@ do -- Player Scope
 	hum.AutoRotate=false				-- v This fixes the bug created by the bugfix to the random poof bug, which would make the gun not update positions correctly
 	hum.HealthDisplayDistance=0
 	hum.NameDisplayDistance=0
+	cam.FieldOfView=90
 	
 	player.step = function()
 		player.dist = root and player.dist + (lastPos - root.CFrame.p).magnitude or 0
@@ -339,7 +340,11 @@ do -- Player Scope
 		local swing=nc -- Depricate later
 		local sprinto=nc -- Depricate later
 		
-		local shots={}
+		local shots={}--Will depricate when particles are more developed
+
+		local la,ra=storage.Models.Arm:Clone(),storage.Models.Arm:Clone()
+		la.Parent=workspace
+		ra.Parent=workspace
 		
 		rs.RenderStepped:wait()--BULLSHIT?!
 
@@ -374,6 +379,16 @@ do -- Player Scope
 				*swing
 				*sprinto
 				+(root.Velocity*-.01) --Will also be depricated with the lerps in favor of better stuff
+			
+			local a=cam.CoordinateFrame*cf(.75,-.75,.15)
+			local c0, c1 = mathF.IK(1,1,a,model.Handle.Position)
+			ra.f.CFrame=c0
+			ra.e.CFrame=c1
+
+			local a=cam.CoordinateFrame*cf(-.15,-.75,-.15)
+			local c0, c1 = mathF.IK(1,1,a,model.Handle2.Position)
+			la.f.CFrame=c0
+			la.e.CFrame=c1
 		end
 		
 		return self
