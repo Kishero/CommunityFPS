@@ -36,56 +36,57 @@ local plr = game.Players.LocalPlayer --The user
 local mouse = plr:GetMouse() --The player's mouse [Depricated? Use UIS.]
 local cam = game.Workspace.CurrentCamera --Client's camera
 local storage = game.ReplicatedStorage --Rep storage
-local char, humanoid, torso, hrp, head, lhip, rhip --Likely no need for this as we will be creating a custom humanoid
-
+local char=wfc(game.Workspace,plr.Name)
 
 -- Shortcuts
-local clone 		= game.clone
+local clone		 = game.clone
+local workspace= game.Workspace
 
-local v3 			= Vector3.new
+local v3 		= Vector3.new
 local nv			= v3()
 local v2			= Vector2.new
-local nv2			= v2()
+local nv2		= v2()
 local cf			= CFrame.new
 local nc			= cf()
 local ca			= CFrame.Angles
-local ffa			= CFrame.fromAxisAngle
+local ffa		= CFrame.fromAxisAngle
 local ud			= UDim.new
-local nud			= ud()
-local ud2			= UDim2.new
-local nud2			= ud2()
-local dot 			= function(x, y) 		return x.x * y.x + x.y * y.y + x.z * y.z end
-local dot2			= function(x, y) 		return x.x * y.x + x.y * y.y end
-local floor			= function(x) 			return x - x % 1 end
-local ceil			= function(x) 			return x + (1 - x % 1) end
-local round			= function(x) 			return floor(x + .5) end
-local lerp			= function(x, y, a) 	return x + (y - x) * a end
-local clamp			= function(n, l, h) 	if n < l then return l end if n > h then return h end return n end
-local random		= math.random
-local sort			= table.sort
-local atan2			= math.atan2
-local huge			= math.huge
-local cos			= math.cos
-local sin			= math.sin
-local tan			= math.tan
-local rad			= math.rad
-local abs			= math.abs
-local acos			= math.acos
-local asin			= math.asin
-local atan			= math.atan
-local atan2			= math.atan2
+local nud		= ud()
+local ud2		= UDim2.new
+local nud2		= ud2()
+local dot 		= function(x, y) 		return x.x * y.x + x.y * y.y + x.z * y.z end
+local dot2		= function(x, y) 		return x.x * y.x + x.y * y.y end
+local floor	= function(x) 			return x - x % 1 end
+local ceil		= function(x) 			return x + (1 - x % 1) end
+local round		= function(x) 			return floor(x + .5) end
+local lerp		= function(x, y, a) 	return x + (y - x) * a end
+local clamp		= function(n, l, h) 	if n < l then return l end if n > h then return h end return n end
+local random	= math.random
+local sort		= table.sort
+local atan2	= math.atan2
+local huge		= math.huge
+local cos		= math.cos
+local sin		= math.sin
+local tan		= math.tan
+local rad		= math.rad
+local abs		= math.abs
+local acos		= math.acos
+local asin		= math.asin
+local atan		= math.atan
+local atan2	= math.atan2
 local pi			= math.pi
-local tau			= pi*2
-local e				= 2.71828183
-local deg			= pi/180
+local tau		= pi*2
+local e			= 2.71828183
+local deg		= pi/180
 local randomseed	= math.randomseed
-local setmetatable	= setmetatable
-local tick			= tick
-local new 			= Instance.new
-local ray			= Ray.new
-local raycast		= function(...) return game.Workspace:FindPartOnRayWithIgnoreList(...) end
-local ptos 			= nc.pointToObjectSpace
-local tos			= nc.toObjectSpace
+local setmetatable= setmetatable
+local tick		= tick
+local new 		= Instance.new
+local ray		= Ray.new
+local raycast	= function(...) return game.Workspace:FindPartOnRayWithIgnoreList(...) end
+local ptos 		= nc.pointToObjectSpace
+local tos		= nc.toObjectSpace
+local lower		= string.lower
 
 local drawray, draw, tramsformModel, weldModel
 do -- Debug funcs
@@ -122,7 +123,7 @@ do -- Debug funcs
 	
 	
 	-- @EgoMoose
-	--Move a model
+	-- Move a model
 	function transformModel(model, cframe, center) -- Same errors as SetPrimaryPartCFrame;
 		local center = center or (model.PrimaryPart and model.PrimaryPart.CFrame or model:GetModelCFrame())
 		for _, child in ipairs(model:GetChildren()) do
@@ -165,12 +166,13 @@ end
 randomseed(tick()) for i = 1, 4 do random() end -- Makes math.random even more 'random'
 
 -- Modules
-local time 		= {} -- We are the time gods (This is for time related functions)
-local mathF		= {} -- A math library for math functions
-local particle	= {} -- Particle effect functions
-local player 	= {} -- Player logic
-local Game 		= {} -- Game logic
-local run 		= {} -- Runs all code
+local time 			= {} -- We are the time gods (This is for time related functions)
+local mathF			= {} -- A math library for math functions
+local particle		= {} -- Particle effect functions
+local player 		= {} -- Player logic
+local input			= {} -- Input controller
+local Game 			= {} -- Game logic
+local run 			= {} -- Runs all code
 
 do -- Time Scope
 	local self = time --When I set self=[module name] I make the module quicker to reference and give it a more universal name
@@ -229,8 +231,8 @@ do -- Mathf Scope
 			i = i + .12
 			
 			local c0, c1 = mathF.IK(4,4,a,b)
-			game.Workspace.p1.CFrame = game.Workspace.p1.CFrame:lerp(c0*cf(0,0,-2), time.smoothDeltaTime()*time.deltaTime()*400) --Smooth hybrid delta time, looks good but not as good as simply smooth delta; nice to show off the example
-			game.Workspace.p2.CFrame = game.Workspace.p2.CFrame:lerp(c1*cf(0,0,-2), time.smoothDeltaTime()*time.deltaTime()*400)
+			game.Workspace.p1.CFrame = game.Workspace.p1.CFrame:lerp(c0*cf(0,0,-2), time.smoothDeltaTime())
+			game.Workspace.p2.CFrame = game.Workspace.p2.CFrame:lerp(c1*cf(0,0,-2), time.smoothDeltaTime())
 		end
 	end)
 
@@ -246,7 +248,7 @@ do
 	self.drawParticle= function(p0,p1)
 		local p0,p0V=cam:WorldToScreenPoint(p0) --Get the position on the screen for p0 and the current position
 		local p1,p1V=cam:WorldToScreenPoint(p1)
-		local p1r=ray(cam.CoordinateFrame.p,(p1-cam.CoordinateFrame.p).Unit*(p1-cam.CoordinateFrame.p).Magnitude*10)
+		local p1r=ray(cam.CoordinateFrame.p,(p1-cam.CoordinateFrame.p).Unit*((p1-cam.CoordinateFrame.p).Magnitude+1),char)
 		local v=workspace:FindPartOnRay(p1r,plr.Character) -- <- Make sure it is not obstructed ^
 		
 		--Recycle frames to use less cpu
@@ -266,8 +268,8 @@ do
 		-- v Need work
 		--p.Rotation=atan2(p1.y-p0.y,p1.x-p0.x)/(pi/180)
 		--p.Size=ud2(0,p0.x-p1.x,0,p0.y-p1.y/4)
-		
- 		p.Size=ud2(0,8,0,8)
+		local debugm=(p1-cam.CoordinateFrame.p).Magnitude
+ 		p.Size=ud2(0,24-(debugm/100),0,24-(debugm/100)) --Not serious, just debug
 		p.Position=((v or not p0V or not p1V) and ud2(-1,0,0,0) ) or ud2(0,p1.x,0,p1.y) --If obstructed then move off screen, else move to screen space
 		
 		spawn(function()
@@ -279,13 +281,13 @@ do
 	
 	--Test particle render and bullet interpolator
 	uis.InputBegan:connect(function(i)
-		if i.UserInputType==Enum.UserInputType.Keyboard then
+		if i.UserInputType==Enum.UserInputType.MouseButton1 then
 			spawn(function()
 				local t=tick()
-				local p0=wfc(game.Workspace,"Test").Barrel.Position
-				local v0=game.Workspace.Test.Barrel.CFrame.lookVector*1024
-				while tick()-t<5 do
-					local p1,v0=mathF.BulletInterp(p0,v0,v3(0,-9.83,0))
+				local p0=wfc(cam,"Test").Barrel.Position
+				local v0=cam.Test.Barrel.CFrame.lookVector*5024
+				while tick()-t<6 do
+					local p1,v0=mathF.BulletInterp(p0,v0,v3(0,-150,0))
 					self.drawParticle(p0,p1)
 					p0=p1
 					rs.RenderStepped:wait()
@@ -300,7 +302,26 @@ do -- Player Scope
 	local self = player
 	
 	local user = plr --Unneeded
-	local chr = wfc(game.Workspace,user.Name) --Could be moved to the begininng of the script
+	
+	local lastPos = nv
+	self.dist = 0
+	
+	local root=wfc(char,"HumanoidRootPart")
+	local hum=wfc(char,"Humanoid")
+
+	hum.AutoRotate=false				-- v This fixes the bug created by the bugfix to the random poof bug, which would make the gun not update positions correctly
+	hum.HealthDisplayDistance=0
+	hum.NameDisplayDistance=0
+	
+	player.step = function()
+		player.dist = root and player.dist + (lastPos - root.CFrame.p).magnitude or 0
+		lastPos=root.CFrame.p
+	end
+	
+	--Main gun weld, universal
+	local mainWeld=new("Motor6D",root) --Fixes random poof bug
+		mainWeld.Part0=root
+		mainWeld.Name="gunSocket"
 	
 	-- Gun subscope generator thingy
 	self.loadGun = function(prop, model)
@@ -311,21 +332,95 @@ do -- Player Scope
 		local mag = prop.mag or 32 -- I didn't add chamber stuff as I don't 100% know how that works
 		
 		local model=model or error("NO GUN MODEL!")
-
-		model.Handle.CFrame=cf(model.Handle.Position) -- Fail v
-		weldModel(model,model.Handle) --Divise a way to fix any rotational errors
-		model.Parent=game.Workspace
 		
 		local gOffset=prop.gOffset
+		local sprintOffset=prop.sprintOffset
+
+		local swing=nc -- Depricate later
+		local sprinto=nc -- Depricate later
 		
 		local shots={}
 		
-		self.step=function()
-			model.Handle.CFrame=cam.CoordinateFrame*gOffset
+		rs.RenderStepped:wait()--BULLSHIT?!
+
+		--model.Handle.CFrame=cf(model.Handle.Position) -- Fail v
+		weldModel(model,model.Handle) --Divise a way to fix any rotational errors
+		model.Parent=cam
+		
+		mainWeld.Part1=model.Handle
+		
+		local function gunbob(a, r)
+			local speed = hum.WalkSpeed
+			local dist = player.dist * tau * .75
+			local d,s=tick()*4,2*(1-a)
+			return cf(
+				r * sin(dist/8-1) * a * 2 * speed/196,
+				3.25 * a * sin(dist/4) * speed/512,
+				(r/2) * sin(dist/8-1) * a * 2 * speed/196)
+				*cf(cos(d/8)*s/128,-sin(d/4)*s/128,sin(d/16)*s/64)
+		end
+
+		self.step = function()
+			--These lerps will later be depicated in favor of an actual animation system, for now they are here to test inputs
+			hum.WalkSpeed=input.keys.leftshift and 28 or 16
+			swing=swing:lerp(ca(input.Mouse.delta.y/1024,-input.Mouse.delta.x/1024,0),time.deltaTime()*6000)
+			sprinto=sprinto:lerp(input.keys.leftshift and sprintOffset*(cf(random(-.25,.25),0,0)*ca(-sin(tick()*16)/8,sin(tick()*16)/4,sin(tick()*16)/12)) or nc,time.deltaTime()*10240)
+
+			mainWeld.C0= --Change the gun position
+				 root.CFrame:inverse() --Transfer from local to world coords
+				*cam.CoordinateFrame --The camera's position
+				*gOffset --The gun offset
+				*gunbob(.25*(hum.WalkSpeed/14), .5*(hum.WalkSpeed/14)) --Walkspeed will later be removed with the lerps
+				*swing
+				*sprinto
+				+(root.Velocity*-.01) --Will also be depricated with the lerps in favor of better stuff
 		end
 		
 		return self
 	end
+
+end;
+
+do --Input scope
+	local self=input
+	
+	self.Mouse={}
+	self.Mouse.pos=nv
+	self.Mouse.delta=nv
+
+	self.keys={}
+
+	-- Typing fix
+	local typing
+		
+	uis.TextBoxFocused:connect(function()
+		typing=true
+	end)
+	
+	uis.TextBoxFocusReleased:connect(function()
+		typing=false
+	end)
+
+	uis.InputChanged:connect(function(object)
+		if object.UserInputType.Name=="MouseMovement" then
+			self.Mouse.pos=object.Position
+			self.Mouse.delta=object.Delta
+		end
+	end)
+
+	uis.InputBegan:connect(function(object)
+		if typing then return end
+		if object.UserInputType.Name=="Keyboard" then
+			self.keys[lower(object.KeyCode.Name)]=true
+		end
+	end)
+
+	uis.InputEnded:connect(function(object)
+		if typing then return end
+		if object.UserInputType.Name=="Keyboard" then
+			self.keys[lower(object.KeyCode.Name)]=false
+		end
+	end)
 
 end;
 
@@ -348,29 +443,33 @@ do -- Game Scope
 end;
 
 do -- Run Scope
-  local heartbeat = rs.Heartbeat
-	local rframework = { -- Run everything, note that this should be in a prioritized order
-		time; -- Delta time stuff goes here
-		Game; --Master of everting related to the physical player
+	local heartbeat = rs.Heartbeat
+	
+	local rframework = { -- Render stuff
+		time.step; -- Delta time stuff goes here
+		Game.step; -- Master of everything related to the physical player
 	}
-        local framework={}
-  rs:BindToRenderStep("RenderLoop", Enum.RenderPriority.Camera.Value, function()
-      -- Code in this function should be left only for animations and visual effects, so that they are in sync with rendering
-      -- Consider creating serperate method dedicated for rendering loop
-      for i=1,#rframework do
-      	rframework[i].step()
-      end
-  end)
-
-  while true do
-		for i=1,#framework do
-			framework[i].step() -- Normal updates should be left to the heartbeat loop
+	local framework	= { -- Heartbeat stuff
+		player.step
+	}
+	
+	rs:BindToRenderStep("RenderLoop", 201, function() -- Code in this function should be left only for animations and visual effects, so that they are in sync with rendering
+		for i=1,#rframework do
+			rframework[i]()
 		end
+	end)
 
-    heartbeat:wait()
-  end
+	spawn(function() -- Heartbeat thread
+		while true do
+			for i=1,#framework do
+				framework[i]() -- Normal updates should be left to the heartbeat loop
+			end
+	
+			heartbeat:wait()
+		end
+	end)
+	
 end;
 
 --Run code
-
 Game.LoadGun(1,require(storage.Modules.Test),storage.Models.Test:Clone())
