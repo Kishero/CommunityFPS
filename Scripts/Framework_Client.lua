@@ -14,6 +14,7 @@ local settings = { --YellowTide added this, I am unsure what it is for
 }
 
 local debug = { --Debug settings
+	dRay = false;
 	Print = true; --Allow output printing
 }
 
@@ -87,6 +88,7 @@ local raycast	= function(...) return game.Workspace:FindPartOnRayWithIgnoreList(
 local ptos 		= nc.pointToObjectSpace
 local tos		= nc.toObjectSpace
 local lower		= string.lower
+local components=nc.components
 
 local drawray, draw, tramsformModel, weldModel
 do -- Debug funcs
@@ -96,7 +98,7 @@ do -- Debug funcs
 		part.Material = Enum.Material.Neon;
 		part.TopSurface = Enum.SurfaceType.Smooth;
 		part.BottomSurface = Enum.SurfaceType.Smooth;
-		part.Size = Vector3.new(1, ray.Direction.magnitude, 1);
+		part.Size = Vector3.new(.2, ray.Direction.magnitude, .2);
 		part.CFrame = CFrame.new(ray.Origin + ray.Direction/2, ray.Origin + ray.Direction) * CFrame.Angles(pi/2,0,0);
 		part.Anchored = true;
 		part.CanCollide = false;
@@ -170,6 +172,7 @@ local time 			= {} -- We are the time gods (This is for time related functions)
 local mathF			= {} -- A math library for math functions
 local particle		= {} -- Particle effect functions
 local player 		= {} -- Player logic
+local camera		= {} -- Camera controller
 local input			= {} -- Input controller
 local Game 			= {} -- Game logic
 local run 			= {} -- Runs all code
@@ -248,7 +251,7 @@ do
 	self.drawParticle= function(p0,p1)
 		local p0,p0V=cam:WorldToScreenPoint(p0) --Get the position on the screen for p0 and the current position
 		local p1,p1V=cam:WorldToScreenPoint(p1)
-		local p1r=ray(cam.CoordinateFrame.p,(p1-cam.CoordinateFrame.p).Unit*((p1-cam.CoordinateFrame.p).Magnitude+1),char)
+		local p1r=ray((cf(0,0,.1)*cam.CoordinateFrame).p,(p1-cam.CoordinateFrame.p).Unit*((p1-cam.CoordinateFrame.p).Magnitude+1),char)
 		local v=workspace:FindPartOnRay(p1r,plr.Character) -- <- Make sure it is not obstructed ^
 		
 		--Recycle frames to use less cpu
@@ -264,12 +267,8 @@ do
 		table.remove(frames,pid)
 		
 		p.Visible=true
-		
-		-- v Need work
-		--p.Rotation=atan2(p1.y-p0.y,p1.x-p0.x)/(pi/180)
-		--p.Size=ud2(0,p0.x-p1.x,0,p0.y-p1.y/4)
-		local debugm=(p1-cam.CoordinateFrame.p).Magnitude
- 		p.Size=ud2(0,24-(debugm/100),0,24-(debugm/100)) --Not serious, just debug
+
+		p.Size=ud2(0,abs(p0.x-p1.x)+1,0,abs(p0.y-p1.y)+1)
 		p.Position=((v or not p0V or not p1V) and ud2(-1,0,0,0) ) or ud2(0,p1.x,0,p1.y) --If obstructed then move off screen, else move to screen space
 		
 		spawn(function()
@@ -285,10 +284,14 @@ do
 			spawn(function()
 				local t=tick()
 				local p0=wfc(cam,"Test").Barrel.Position
-				local v0=cam.Test.Barrel.CFrame.lookVector*5024
+				local v0=cam.Test.Barrel.CFrame.lookVector*100000
 				while tick()-t<6 do
-					local p1,v0=mathF.BulletInterp(p0,v0,v3(0,-150,0))
+					local p1,v0=mathF.BulletInterp(p0,v0,v3(0,-300,0))
 					self.drawParticle(p0,p1)
+					local r=ray(p0,(p1-p0).Unit*(p1-p0).Magnitude)
+					local hit,pos=workspace:FindPartOnRay(r)
+					if debug.dRay then drawray(r) end
+					if hit then local p=storage.Models.Smoke:Clone() p.Parent=workspace p.CFrame=cf(pos) delay(.25,function() p.e.Enabled=false p.e2.Enabled=false delay(.25,function() p:Destroy() end) end) break end
 					p0=p1
 					rs.RenderStepped:wait()
 				end
@@ -303,26 +306,135 @@ do -- Player Scope
 	
 	local user = plr --Unneeded
 	
-	local lastPos = nv
+	self.lastPos = nv
 	self.dist = 0
 	
 	local root=wfc(char,"HumanoidRootPart")
 	local hum=wfc(char,"Humanoid")
-
-	hum.AutoRotate=false				-- v This fixes the bug created by the bugfix to the random poof bug, which would make the gun not update positions correctly
-	hum.HealthDisplayDistance=0
-	hum.NameDisplayDistance=0
-	cam.FieldOfView=90
 	
 	player.step = function()
-		player.dist = root and player.dist + (lastPos - root.CFrame.p).magnitude or 0
-		lastPos=root.CFrame.p
+		player.dist = root and player.dist + (self.lastPos - root.CFrame.p).magnitude or 0
+		self.lastPos=root.CFrame.p
 	end
 	
 	--Main gun weld, universal
 	local mainWeld=new("Motor6D",root) --Fixes random poof bug
 		mainWeld.Part0=root
 		mainWeld.Name="gunSocket"
+
+	function self:loadPlayerEntity() --Rewrite this
+
+		self.playerEntity=storage.Models.Entity:Clone()
+
+		local m=self.playerEntity
+		
+		local Head=m.Head
+		local Torso=m.Torso
+		local lArm=m.lArm
+		local rArm=m.rArm
+		local lLeg=m.lLeg
+		local rLeg=m.rLeg
+
+		self.playerEntityJoints={}
+		local jointlist=self.playerEntityJoints
+
+		local Headw=new("Motor6D",m)
+		Headw.Name="HeadJoint"
+		Headw.Part0=Head.Neck
+		Headw.Part1=Torso.Chest
+		Headw.C0=tos(Head.Neck.CFrame,Torso.Chest.CFrame)
+
+		local Neck=new("Motor6D",m)
+		Neck.Name="NeckJoint"
+		Neck.Part0=Head.Neck
+		Neck.Part1=Head.Head
+		Neck.C0=tos(Head.Neck.CFrame,Head.Head.CFrame)
+
+		local Torsow=new("Motor6D",m)
+		Torsow.Name="TorsoJoint"
+		Torsow.Part0=Torso.Abdomen
+		Torsow.Part1=Torso.Chest
+		Torsow.C0=tos(Torso.Abdomen.CFrame,Torso.Chest.CFrame)
+
+		local CoreUp=new("Motor6D",m)
+		CoreUp.Name="CoreUpperJoint"
+		CoreUp.Part0=Torso.Abdomen
+		CoreUp.Part1=Torso.Hip
+		CoreUp.C0=tos(Torso.Abdomen.CFrame,Torso.Hip.CFrame)
+
+		local lHip=new("Motor6D",m)
+		lHip.Name="leftHip"
+		lHip.Part0=lLeg.lUpperLeg
+		lHip.Part1=Torso.Hip
+		lHip.C0=tos(lLeg.lUpperLeg.CFrame,Torso.Hip.CFrame)
+
+		local rHip=new("Motor6D",m)
+		rHip.Name="rightHip"
+		rHip.Part0=rLeg.rUpperLeg
+		rHip.Part1=Torso.Hip
+		rHip.C0=tos(rLeg.rUpperLeg.CFrame,Torso.Hip.CFrame)
+
+		local lLegw=new("Motor6D",m)
+		lLegw.Name="leftLeg"
+		lLegw.Part0=lLeg.lUpperLeg
+		lLegw.Part1=lLeg.lAnkle
+		lLegw.C0=tos(lLeg.lUpperLeg.CFrame,lLeg.lAnkle.CFrame)
+
+		local rLegw=new("Motor6D",m)
+		rLegw.Name="rightLeg"
+		rLegw.Part0=rLeg.rUpperLeg
+		rLegw.Part1=rLeg.rAnkle
+		rLegw.C0=tos(rLeg.rUpperLeg.CFrame,rLeg.rAnkle.CFrame)
+
+		local lFoot=new("Motor6D",m)
+		lFoot.Name="leftFoot"
+		lFoot.Part0=lLeg.lAnkle
+		lFoot.Part1=lLeg.lFoot
+		lFoot.C0=tos(lLeg.lAnkle.CFrame,lLeg.lFoot.CFrame)
+
+		local rFoot=new("Motor6D",m)
+		rFoot.Name="rightFoot"
+		rFoot.Part0=rLeg.rAnkle
+		rFoot.Part1=rLeg.rFoot
+		rFoot.C0=tos(rLeg.rAnkle.CFrame,rLeg.rFoot.CFrame)
+
+		--[[local lArmw=new("Motor6D",m)
+		lArmw.Name="leftArm"
+		lArmw.Part0=lArm.lUpperArm
+		lArmw.Part1=lArm.lForearm
+		--lArmw.C0=tos(lArm.lUpperArm.CFrame,lArm.lForearm.CFrame)
+
+		local rArmw=new("Motor6D",m)
+		rArmw.Name="rightArm"
+		rArmw.Part0=rArm.rUpperArm
+		rArmw.Part1=rArm.rForearm
+		--rArmw.C0=tos(rArm.rUpperArm.CFrame,rArm.rForearm.CFrame)]]
+
+		jointlist.Neck=Neck
+		jointlist.Head=Headw
+		jointlist.Torso=Torsow
+		jointlist.CoreUp=CoreUp
+		jointlist.lHip=lHip
+		jointlist.rHip=rHip
+		jointlist.lLeg=lLegw
+		jointlist.rLeg=rLegw
+		jointlist.lFoot=lFoot
+		jointlist.rFoot=rFoot
+		--jointlist.lArm=lArmw
+		--jointlist.rArm=rArmw
+
+		jointlist.weld=new("Motor6D",char)
+		jointlist.weld.Part0=Torso.Hip
+		jointlist.weld.Part1=char.HumanoidRootPart
+		jointlist.weld.C0=cf(0,-2.75,0)
+
+		m.Parent=workspace
+		
+		hum.AutoRotate=false				-- v This fixes the bug created by the bugfix to the random poof bug, which would make the gun not update positions correctly
+		hum.HealthDisplayDistance=0
+		hum.NameDisplayDistance=0
+		uis.MouseIconEnabled = false
+	end
 	
 	-- Gun subscope generator thingy
 	self.loadGun = function(prop, model)
@@ -341,10 +453,6 @@ do -- Player Scope
 		local sprinto=nc -- Depricate later
 		
 		local shots={}--Will depricate when particles are more developed
-
-		local la,ra=storage.Models.Arm:Clone(),storage.Models.Arm:Clone()
-		la.Parent=workspace
-		ra.Parent=workspace
 		
 		rs.RenderStepped:wait()--BULLSHIT?!
 
@@ -362,38 +470,77 @@ do -- Player Scope
 				r * sin(dist/8-1) * a * 2 * speed/196,
 				3.25 * a * sin(dist/4) * speed/512,
 				(r/2) * sin(dist/8-1) * a * 2 * speed/196)
-				*cf(cos(d/8)*s/128,-sin(d/4)*s/128,sin(d/16)*s/64)
+				*cf(cos(d/8)*s/64,-sin(d/4)*s/64,sin(d/16)*s/128)
 		end
 
 		self.step = function()
 			--These lerps will later be depicated in favor of an actual animation system, for now they are here to test inputs
 			hum.WalkSpeed=input.keys.leftshift and 28 or 16
-			swing=swing:lerp(ca(input.Mouse.delta.y/1024,-input.Mouse.delta.x/1024,0),time.deltaTime()*6000)
-			sprinto=sprinto:lerp(input.keys.leftshift and sprintOffset*(cf(random(-.25,.25),0,0)*ca(-sin(tick()*16)/8,sin(tick()*16)/4,sin(tick()*16)/12)) or nc,time.deltaTime()*10240)
-
+			swing=swing:lerp(ca(-camera.delta.x/32*deg,camera.delta.y/32*deg,camera.delta.z/16*deg),time.deltaTime()*60000)
+			sprinto=sprinto:lerp(input.keys.leftshift and sprintOffset*(cf(0,0,cos(tick()*10)*2)*ca(-sin(tick()*14)/8,sin(tick()*14)/4,sin(tick()*16)/12)) or nc,time.deltaTime()*3500)
+			
 			mainWeld.C0= --Change the gun position
 				 root.CFrame:inverse() --Transfer from local to world coords
 				*cam.CoordinateFrame --The camera's position
 				*gOffset --The gun offset
 				*gunbob(.25*(hum.WalkSpeed/14), .5*(hum.WalkSpeed/14)) --Walkspeed will later be removed with the lerps
-				*swing
 				*sprinto
+				*cf(0,0,-abs(sin((-(camera.angle.x/90)/deg)*1.5))) --Realistically move the gun forwards and backwards depending on what angle you're looking at, IE 90 degrees would be converted to radians and divided by 90, then multiplied by 1.5 then forced to be negative
+				*swing
+				--*cf(0,0,5)
 				+(root.Velocity*-.01) --Will also be depricated with the lerps in favor of better stuff
-			
-			local a=cam.CoordinateFrame*cf(.75,-.75,.15)
-			local c0, c1 = mathF.IK(1,1,a,model.Handle.Position)
-			ra.f.CFrame=c0
-			ra.e.CFrame=c1
 
-			local a=cam.CoordinateFrame*cf(-.15,-.75,-.15)
-			local c0, c1 = mathF.IK(1,1,a,model.Handle2.Position)
-			la.f.CFrame=c0
-			la.e.CFrame=c1
+
+			local a=player.playerEntity.Torso.Chest.CFrame*cf(1.25,.8,-3 * (camera.angle.x/180/deg)) --The Z axis here will keep the arms and gun positioned properaly, no floaties
+			local c0, c1 = mathF.IK(2.3,2.3,a,model.Handle.Position)
+			player.playerEntity.rArm.rUpperArm.CFrame=c0*cf(0,0,-2.25/2)
+			player.playerEntity.rArm.rForearm.CFrame=c1*cf(0,0,-2.25/2)
+
+			local a=player.playerEntity.Torso.Chest.CFrame*cf(-1.25,.8,-3 * (camera.angle.x/180/deg))
+			local c0, c1 = mathF.IK(2.3,2.3,a,model.Handle2.Position)
+			player.playerEntity.lArm.lUpperArm.CFrame=c0*cf(0,0,-2.25/2)
+			player.playerEntity.lArm.lForearm.CFrame=c1*cf(0,0,-2.25/2)
+
+			input.Mouse.delta=nv
 		end
 		
 		return self
 	end
 
+end;
+
+do --Camera scope
+	camera.baseFieldOfView=90 --What will we set the FOV to?
+	camera.sensitivity=1 --How sensitive is the mouse?
+	camera.angle=nv --Angle
+	camera.maxangle=85*deg --Can't look higher than this
+	camera.minangle=-60*deg --Can't look lower than this
+	camera.delta=nv	--Change in campera position
+
+	cam.CameraType=Enum.CameraType.Scriptable
+	cam.FieldOfView=90
+
+	camera.step=function()
+		if not player.playerEntityJoints then return end
+		--Mouse input
+		local coef=camera.sensitivity*atan(tan(camera.baseFieldOfView*deg/2)/e^2)/(32*pi) --Nice equation that uses your FOV for more realistic mouse movement
+		local x=camera.angle.x-coef*input.Mouse.delta.y 
+		local y=camera.angle.y-coef*input.Mouse.delta.x
+		x=x>camera.maxangle and camera.maxangle or x<camera.minangle and camera.minangle or x --Constrain vertical look
+		local newangle=v3(x,y,0)
+		camera.delta=(newangle-camera.angle)/time.deltaTime()
+		camera.angle=newangle
+
+		cam.CoordinateFrame=char.HumanoidRootPart.CFrame
+			*ca(0,camera.angle.y,0) --Can't do angles.y and x in the same ca because it would not produce proper results
+			*ca(camera.angle.x,0,0)
+			*cf(0,0,-1.5) --Makes your neck go forward a bit
+			*ca(sin(tick()*16)/2048*char.HumanoidRootPart.Velocity.Magnitude,cos(tick()*8)/2048*char.HumanoidRootPart.Velocity.Magnitude,0)
+			+v3(0,7.5,0)
+
+		player.playerEntityJoints.weld.C1=ca(0,camera.angle.y,0) --Rotate the controlled entity
+	end
+	
 end;
 
 do --Input scope
@@ -461,6 +608,7 @@ do -- Run Scope
 	local heartbeat = rs.Heartbeat
 	
 	local rframework = { -- Render stuff
+		camera.step; --Camera update
 		time.step; -- Delta time stuff goes here
 		Game.step; -- Master of everything related to the physical player
 	}
@@ -488,3 +636,13 @@ end;
 
 --Run code
 Game.LoadGun(1,require(storage.Modules.Test),storage.Models.Test:Clone())
+player:loadPlayerEntity()
+
+wait(.5)
+
+uis.MouseBehavior="LockCenter"
+plr:ClearCharacterAppearance()
+for _,v in pairs(char:GetChildren()) do
+if v:IsA("Part") then
+v.Transparency=1
+end end
